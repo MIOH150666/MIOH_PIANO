@@ -1,0 +1,568 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap');
+
+:root{
+    --green:#00ff66;
+    --glow-strong:0 0 25px rgba(0,255,102,.9);
+    --glow-soft:0 0 12px rgba(0,255,102,.6);
+    --modal-bg:rgba(0, 10, 5, 0.95);
+}
+
+*{
+    box-sizing:border-box;
+    font-family:'Orbitron',sans-serif;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:radial-gradient(circle at top,#033,#000);
+    color:#caffda;
+}
+
+/* =========================
+   MODAL DE AUTENTICACIÓN
+========================= */
+.modal {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: var(--modal-bg);
+    border-radius: 20px;
+    padding: 40px;
+    width: 90%;
+    max-width: 400px;
+    border: 2px solid rgba(0, 255, 102, 0.5);
+    box-shadow: 0 0 50px rgba(0, 255, 102, 0.3);
+    position: relative;
+}
+
+.modal-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.modal-header h2 {
+    color: #fff;
+    margin: 0;
+    font-size: 2.5rem;
+}
+
+.modal-header h2 span {
+    color: var(--green);
+    text-shadow: var(--glow-strong);
+}
+
+.modal-subtitle {
+    color: #aaffbb;
+    font-size: 0.9rem;
+    margin-top: 5px;
+    letter-spacing: 2px;
+}
+
+/* Contenedor de autenticación */
+.auth-container {
+    width: 100%;
+}
+
+/* Formularios de autenticación */
+.auth-form {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
+
+.auth-form.active {
+    display: block;
+}
+
+.auth-form h3 {
+    color: var(--green);
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #aaffbb;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(0, 20, 10, 0.8);
+    border: 2px solid rgba(0, 255, 102, 0.3);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 15px rgba(0, 255, 102, 0.5);
+}
+
+.form-group input::placeholder {
+    color: #88aa99;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 2px solid var(--green);
+    color: var(--green);
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    box-shadow: var(--glow-soft);
+}
+
+.auth-btn:hover {
+    background: var(--green);
+    color: #000;
+    box-shadow: var(--glow-strong);
+}
+
+.auth-switch {
+    text-align: center;
+    margin-top: 20px;
+    color: #88aa99;
+    font-size: 0.9rem;
+}
+
+.auth-switch a {
+    color: var(--green);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.auth-switch a:hover {
+    text-shadow: var(--glow-soft);
+}
+
+.auth-error {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px solid rgba(255, 0, 0, 0.3);
+    border-radius: 8px;
+    color: #ff6666;
+    font-size: 0.85rem;
+    text-align: center;
+    display: none;
+}
+
+.auth-error.active {
+    display: block;
+    animation: shake 0.5s ease;
+}
+
+/* Loading spinner */
+.auth-loading {
+    text-align: center;
+    padding: 30px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(0, 255, 102, 0.3);
+    border-top: 4px solid var(--green);
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    animation: spin 1s linear infinite;
+}
+
+.auth-loading p {
+    color: var(--green);
+    margin: 0;
+}
+
+/* Barra de usuario */
+.user-bar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    background: rgba(0, 20, 10, 0.9);
+    padding: 10px 20px;
+    border-bottom-left-radius: 15px;
+    border-left: 2px solid var(--green);
+    border-bottom: 2px solid var(--green);
+    z-index: 100;
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.2);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-info span {
+    color: #aaffbb;
+    font-size: 0.9rem;
+}
+
+.logout-btn {
+    background: transparent;
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 5px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background: var(--green);
+    color: #000;
+}
+
+/* Contenedor del sintetizador */
+.synth-container {
+    width: 100%;
+    max-width: 1000px;
+    padding: 20px;
+}
+
+.synth{
+    max-width:1000px;
+    padding:28px;
+    border-radius:30px;
+    background:linear-gradient(180deg,#02180d,#000);
+    border:2px solid rgba(0,255,102,.35);
+    box-shadow:0 0 40px rgba(0,255,102,.35);
+}
+
+.synth-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:22px;
+}
+
+h1 span{
+    color:var(--green);
+    text-shadow:var(--glow-strong);
+}
+
+.controls{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.block{
+    padding:14px;
+    border-radius:18px;
+    background:linear-gradient(180deg,#02140a,#000);
+    box-shadow:inset 0 0 15px rgba(0,255,102,.1);
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+}
+
+.title{
+    width:100%;
+    color:var(--green);
+    letter-spacing:3px;
+    font-size:.75rem;
+}
+
+.dual{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+.control{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+/* Control Header con nombre y valor */
+.control-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.control-header span:first-child {
+    font-size: 0.8rem;
+    color: #aaffbb;
+    font-weight: 600;
+}
+
+.value-display {
+    font-size: 0.7rem;
+    color: var(--green);
+    text-shadow: var(--glow-soft);
+    font-weight: 600;
+    min-width: 60px;
+    text-align: right;
+}
+
+button{
+    background:transparent;
+    border:2px solid var(--green);
+    color:var(--green);
+    padding:8px 18px;
+    border-radius:16px;
+    cursor:pointer;
+    box-shadow:var(--glow-soft);
+}
+
+button.active{
+    background:var(--green);
+    color:#001;
+    box-shadow:var(--glow-strong);
+}
+
+input[type=range]{
+    appearance:none;
+    height:6px;
+    background:#033;
+    border-radius:6px;
+    margin-top: 4px;
+}
+
+input[type=range]::-webkit-slider-thumb{
+    appearance:none;
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background:var(--green);
+    box-shadow:var(--glow-strong);
+}
+
+.piano-keys{
+    display:flex;
+    justify-content:center;
+    margin-top:28px;
+    list-style:none;
+    padding:0;
+}
+
+.key{
+    position:relative;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.white{
+    width:64px;
+    height:240px;
+    background:#fff;
+    border:1px solid #222;
+    border-radius:0 0 8px 8px;
+}
+
+.black{
+    width:40px;
+    height:150px;
+    background:#000;
+    margin:0 -20px;
+    z-index:2;
+    border-radius:0 0 6px 6px;
+}
+
+.white.active,
+.black.active{
+    background:var(--green);
+    box-shadow:0 0 25px var(--green);
+}
+
+/* ESTILOS PARA LETRAS CENTRADAS */
+.key span{
+    position:absolute;
+    width:100%;
+    text-align:center;
+    font-size:1.2rem;
+    font-weight:bold;
+    pointer-events:none;
+    user-select:none;
+}
+
+/* Letras en teclas blancas - abajo */
+.white span{
+    color:#333;
+    bottom:20px;
+}
+
+/* Letras en teclas negras - centradas verticalmente */
+.black span{
+    color:#fff;
+    top:50%;
+    transform:translateY(-50%);
+    text-shadow:0 0 8px rgba(0,255,102,0.7);
+}
+
+/* Letras cuando están activas */
+.white.active span{
+    color:#000;
+    text-shadow:0 0 10px rgba(0,255,102,0.9);
+}
+
+.black.active span{
+    color:#000;
+    text-shadow:0 0 15px rgba(0,255,102,1);
+}
+
+/* Estilos para armónicos */
+.harmonics-controls {
+    width: 100%;
+}
+
+.harmonics-controls .value-display {
+    text-align: center;
+    margin-top: 2px;
+}
+
+/* Estilos para selección de tipo LFO */
+.lfo-type-selector {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.lfo-type-btn {
+    flex: 1;
+    padding: 10px 5px;
+    font-size: 0.8rem;
+}
+
+/* Contenedor para botón LFO toggle */
+.lfo-toggle-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+/* Botones de tipo de filtro */
+.filter-type-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.filter-type-buttons button {
+    flex: 1;
+    padding: 10px 5px;
+    font-size: 0.8rem;
+}
+
+/* Estilos para visualización */
+.visualization-block {
+    width: 100%;
+}
+
+.visualization-container {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.visualization-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.visualization-title {
+    color: var(--green);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: var(--glow-soft);
+}
+
+canvas {
+    width: 100%;
+    height: 150px;
+    background: #001108;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 102, 0.3);
+    box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.1);
+}
+
+/* Fader personalizado */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background: #022;
+    border-radius: 5px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--green);
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--green);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--green);
+    cursor: pointer;
+    border: none;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}

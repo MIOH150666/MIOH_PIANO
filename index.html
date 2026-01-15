@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>MIOH PIANO</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+</head>
+
+<body>
+    <!-- Modal de Autenticación -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><span>MIOH</span> PIANO</h2>
+                <p class="modal-subtitle">Sintetizador Digital</p>
+            </div>
+            
+            <div class="auth-container">
+                <!-- Formulario de Inicio de Sesión -->
+                <div id="loginForm" class="auth-form active">
+                    <h3>Iniciar Sesión</h3>
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Contraseña</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••">
+                    </div>
+                    <button id="loginBtn" class="auth-btn">Iniciar Sesión</button>
+                    <p class="auth-switch">¿No tienes cuenta? <a href="#" id="showRegister">Regístrate</a></p>
+                    <div class="auth-error" id="loginError"></div>
+                </div>
+
+                <!-- Formulario de Registro -->
+                <div id="registerForm" class="auth-form">
+                    <h3>Crear Cuenta</h3>
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Contraseña</label>
+                        <input type="password" id="registerPassword" placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirmar Contraseña</label>
+                        <input type="password" id="confirmPassword" placeholder="••••••••">
+                    </div>
+                    <button id="registerBtn" class="auth-btn">Registrarse</button>
+                    <p class="auth-switch">¿Ya tienes cuenta? <a href="#" id="showLogin">Inicia Sesión</a></p>
+                    <div class="auth-error" id="registerError"></div>
+                </div>
+
+                <!-- Estado de carga -->
+                <div id="authLoading" class="auth-loading" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Procesando...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Usuario (se muestra después del login) -->
+    <div id="userBar" class="user-bar" style="display: none;">
+        <div class="user-info">
+            <span id="userEmail"></span>
+            <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <!-- Sintetizador (oculto inicialmente) -->
+    <div id="synthContainer" class="synth-container" style="display: none;">
+        <div class="synth">
+
+            <div class="synth-header">
+                <h1><span>MIOH</span> PIANO</h1>
+
+                <div class="master">
+                    <span>Master Volume</span>
+                    <input id="volumeSlider" type="range" min="0" max="1" step="any" value="0.5">
+                </div>
+
+                <div class="master">
+                    <span>Show Keys</span>
+                    <input id="showKeys" type="checkbox" checked>
+                </div>
+            </div>
+
+            <div class="controls">
+
+                <!-- VISUALIZACIÓN DE ONDA Y ESPECTRO -->
+                <div class="block visualization-block">
+                    <div class="title">VISUALIZACIÓN</div>
+                    <div class="visualization-container">
+                        <div class="visualization-item">
+                            <div class="visualization-title">Forma de Onda</div>
+                            <canvas id="waveformCanvas" width="400" height="150"></canvas>
+                        </div>
+                        <div class="visualization-item">
+                            <div class="visualization-title">Espectrograma (FFT)</div>
+                            <canvas id="spectrumCanvas" width="400" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OSC SELECT -->
+                <div class="block">
+                    <div class="title">OSC SELECT</div>
+                    <button class="osc-btn active" data-osc="1">Config OSC1</button>
+                    <button class="osc-btn" data-osc="2">Config OSC2</button>
+                </div>
+
+                <!-- WAVE -->
+                <div class="block">
+                    <div class="title">WAVEFORM</div>
+                    <button class="wave-btn" data-wave="sine">Sine</button>
+                    <button class="wave-btn" data-wave="square">Square</button>
+                    <button class="wave-btn" data-wave="sawtooth">Saw</button>
+                    <button class="wave-btn" data-wave="triangle">Triangle</button>
+                </div>
+
+                <!-- ARMÓNICOS IMPARES -->
+                <div class="block">
+                    <div class="title">ARMÓNICOS IMPARES</div>
+                    <div class="harmonics-controls">
+                        <div class="dual">
+                            <div class="control">
+                                <span>1º (Fundamental)</span>
+                                <input id="harmonic1-1" type="range" min="0" max="1" step="0.01" value="1.0">
+                                <span id="harmonic1-1-value" class="value-display">1.0</span>
+                            </div>
+                            <div class="control">
+                                <span>3º</span>
+                                <input id="harmonic1-3" type="range" min="0" max="1" step="0.01" value="0.0">
+                                <span id="harmonic1-3-value" class="value-display">0.0</span>
+                            </div>
+                        </div>
+                        <div class="dual">
+                            <div class="control">
+                                <span>5º</span>
+                                <input id="harmonic1-5" type="range" min="0" max="1" step="0.01" value="0.0">
+                                <span id="harmonic1-5-value" class="value-display">0.0</span>
+                            </div>
+                            <div class="control">
+                                <span>7º</span>
+                                <input id="harmonic1-7" type="range" min="0" max="1" step="0.01" value="0.0">
+                                <span id="harmonic1-7-value" class="value-display">0.0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEVELS -->
+                <div class="block dual">
+                    <div class="control">
+                        <span>Nivel OSC1</span>
+                        <input id="level1" type="range" min="0" max="1" step="any">
+                    </div>
+                    <div class="control">
+                        <span>Nivel OSC2</span>
+                        <input id="level2" type="range" min="0" max="1" step="any">
+                    </div>
+                </div>
+
+                <!-- OCTAVES -->
+                <div class="block dual">
+                    <div class="control">
+                        <span id="oct1Label">Octava OSC1 (Do1)</span>
+                        <input id="octave1" type="range" min="1" max="7">
+                    </div>
+                    <div class="control">
+                        <span id="oct2Label">Octava OSC2 (Do1)</span>
+                        <input id="octave2" type="range" min="1" max="7">
+                    </div>
+                </div>
+
+                <!-- FILTER -->
+                <div class="block">
+                    <div class="title">FILTER</div>
+                    
+                    <div class="filter-type-buttons">
+                        <button class="filter-btn active" data-type="lowpass">Low-Pass</button>
+                        <button class="filter-btn" data-type="highpass">High-Pass</button>
+                    </div>
+
+                    <div class="dual">
+                        <div class="control">
+                            <div class="control-header">
+                                <span>Cutoff</span>
+                                <span id="cutoffValue" class="value-display">8000 Hz</span>
+                            </div>
+                            <input id="cutoffSlider" type="range" min="50" max="12000" step="1" value="8000">
+                        </div>
+                        <div class="control">
+                            <div class="control-header">
+                                <span>Resonance</span>
+                                <span id="resonanceValue" class="value-display">0.7</span>
+                            </div>
+                            <input id="resonanceSlider" type="range" min="0.1" max="20" step="0.1" value="0.7">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LFO - TRES TIPOS -->
+                <div class="block">
+                    <div class="title">MODULACIÓN LFO</div>
+
+                    <div class="lfo-type-selector">
+                        <button class="lfo-type-btn active" data-type="tremolo">Tremolo</button>
+                        <button class="lfo-type-btn" data-type="vibrato">Vibrato</button>
+                        <button class="lfo-type-btn" data-type="phaser">Phaser</button>
+                    </div>
+
+                    <div class="dual">
+                        <div class="control">
+                            <div class="control-header">
+                                <span>Rate (Hz)</span>
+                                <span id="lfoRateValue" class="value-display">5.0 Hz</span>
+                            </div>
+                            <input id="lfoRate" type="range" min="0.1" max="20" step="0.1" value="5">
+                        </div>
+                        <div class="control">
+                            <div class="control-header">
+                                <span>Depth</span>
+                                <span id="lfoDepthValue" class="value-display">0.50</span>
+                            </div>
+                            <input id="lfoDepth" type="range" min="0" max="1" step="0.01" value="0.5">
+                        </div>
+                    </div>
+
+                    <div class="lfo-toggle-container">
+                        <button id="lfoToggle">LFO OFF</button>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- KEYS CON LETRAS CENTRADAS -->
+            <ul class="piano-keys">
+                <li class="key white" data-key="a"><span>A</span></li>
+                <li class="key black" data-key="w"><span>W</span></li>
+                <li class="key white" data-key="s"><span>S</span></li>
+                <li class="key black" data-key="e"><span>E</span></li>
+                <li class="key white" data-key="d"><span>D</span></li>
+                <li class="key white" data-key="f"><span>F</span></li>
+                <li class="key black" data-key="t"><span>T</span></li>
+                <li class="key white" data-key="g"><span>G</span></li>
+                <li class="key black" data-key="y"><span>Y</span></li>
+                <li class="key white" data-key="h"><span>H</span></li>
+                <li class="key black" data-key="u"><span>U</span></li>
+                <li class="key white" data-key="j"><span>J</span></li>
+                <li class="key white" data-key="k"><span>K</span></li>
+                <li class="key black" data-key="o"><span>O</span></li>
+                <li class="key white" data-key="l"><span>L</span></li>
+                <li class="key black" data-key="p"><span>P</span></li>
+                <li class="key white" data-key="ñ"><span>Ñ</span></li>
+            </ul>
+
+        </div>
+    </div>
+
+</body>
+</html>
+
