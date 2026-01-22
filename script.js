@@ -140,7 +140,7 @@ showLogin.addEventListener('click', (e) => {
     showAuthForm('login');
 });
 
-// Iniciar sesión
+// Iniciar sesión - CON VERIFICACIÓN DE EMAIL
 loginBtn.addEventListener('click', async () => {
     const email = loginEmail.value.trim();
     const password = loginPassword.value.trim();
@@ -153,6 +153,29 @@ loginBtn.addEventListener('click', async () => {
     try {
         showLoading();
         const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        
+        // VERIFICAR SI EL EMAIL ESTÁ CONFIRMADO
+        if (!userCredential.user.emailVerified) {
+            await auth.signOut(); // Cerrar sesión automáticamente
+            hideLoading();
+            showAuthForm('login');
+            
+            // Opción 1: Mostrar error
+            showError(loginError, 'Por favor, verifica tu email primero. Revisa tu bandeja de entrada.');
+            
+            // Opción 2: Preguntar si quiere reenviar el email de verificación
+            const resend = confirm('Tu email no ha sido verificado. ¿Quieres que reenviemos el email de verificación?');
+            if (resend) {
+                try {
+                    await userCredential.user.sendEmailVerification();
+                    showError(loginError, 'Email de verificación reenviado. Revisa tu bandeja de entrada.');
+                } catch (verificationError) {
+                    showError(loginError, 'Error al reenviar email de verificación. Contacta al administrador.');
+                }
+            }
+            return;
+        }
+        
         showSynth(userCredential.user);
     } catch (error) {
         hideLoading();
@@ -175,12 +198,15 @@ loginBtn.addEventListener('click', async () => {
             case 'auth/too-many-requests':
                 errorMessage = 'Demasiados intentos fallidos. Intenta más tarde';
                 break;
+            case 'auth/network-request-failed':
+                errorMessage = 'Error de conexión. Verifica tu internet';
+                break;
         }
         showError(loginError, errorMessage);
     }
 });
 
-// Registrar usuario
+// Registrar usuario - CON ENVÍO DE VERIFICACIÓN
 registerBtn.addEventListener('click', async () => {
     const email = registerEmail.value.trim();
     const password = registerPassword.value.trim();
@@ -201,10 +227,29 @@ registerBtn.addEventListener('click', async () => {
         return;
     }
     
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showError(registerError, 'Por favor, ingresa un email válido');
+        return;
+    }
+    
     try {
         showLoading();
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        showSynth(userCredential.user);
+        
+        // ENVIAR EMAIL DE VERIFICACIÓN
+        await userCredential.user.sendEmailVerification();
+        
+        // Cerrar sesión inmediatamente (requiere verificación primero)
+        await auth.signOut();
+        
+        hideLoading();
+        showAuthForm('login');
+        
+        // Mostrar mensaje informativo
+        showError(loginError, '¡Registro exitoso! Se ha enviado un email de verificación a ' + email + '. Por favor, verifica tu email antes de iniciar sesión.');
+        
     } catch (error) {
         hideLoading();
         showAuthForm('register');
@@ -222,6 +267,9 @@ registerBtn.addEventListener('click', async () => {
                 break;
             case 'auth/weak-password':
                 errorMessage = 'La contraseña es demasiado débil';
+                break;
+            case 'auth/network-request-failed':
+                errorMessage = 'Error de conexión. Verifica tu internet';
                 break;
         }
         showError(registerError, errorMessage);
@@ -251,12 +299,44 @@ confirmPassword.addEventListener('keypress', (e) => {
 });
 
 /* =========================
+   FUNCIÓN PARA REENVIAR EMAIL DE VERIFICACIÓN
+========================= */
+function resendVerificationEmail() {
+    const user = auth.currentUser;
+    if (user && !user.emailVerified) {
+        user.sendEmailVerification()
+            .then(() => {
+                showError(loginError, 'Email de verificación reenviado. Revisa tu bandeja de entrada.');
+            })
+            .catch((error) => {
+                showError(loginError, 'Error al reenviar email: ' + error.message);
+            });
+    }
+}
+
+/* =========================
    ESTADO DE AUTENTICACIÓN
 ========================= */
 auth.onAuthStateChanged((user) => {
     if (user) {
-        // Usuario autenticado
-        showSynth(user);
+        // Usuario autenticado - VERIFICAR EMAIL
+        if (user.emailVerified) {
+            showSynth(user);
+        } else {
+            // Usuario no ha verificado email - mostrar advertencia
+            authModal.style.display = 'flex';
+            userBar.style.display = 'none';
+            synthContainer.style.display = 'none';
+            showAuthForm('login');
+            
+            // Mostrar mensaje específico
+            loginError.textContent = 'Tu email no ha sido verificado. Por favor, verifica tu email antes de acceder.';
+            loginError.classList.add('active');
+            
+            // Limpiar campos
+            loginEmail.value = user.email;
+            loginPassword.value = '';
+        }
     } else {
         // Usuario no autenticado
         hideSynth();
@@ -265,13 +345,11 @@ auth.onAuthStateChanged((user) => {
 
 /* =========================
    INICIALIZACIÓN DEL SINTETIZADOR
-   (Mantiene todo el código original del sintetizador)
 ========================= */
 let audioCtx, masterGain, filter, lfoOscillator, lfoGain;
 let lfoEnabled = false;
 let currentLFOMode = "tremolo";
 let phaserNode = null;
-let currentOsc = 1;
 let activeNotes = {};
 let analyser, bufferLength, dataArray, waveformData;
 let waveformCanvas, spectrumCanvas, waveformCtx, spectrumCtx;
@@ -352,6 +430,7 @@ function initializeSynth() {
     filter.frequency.value = 8000;
     filter.Q.value = 0.7;
 
+    // Conexión inicial del audio chain
     masterGain.connect(filter);
     filter.connect(analyser);
     analyser.connect(audioCtx.destination);
@@ -375,16 +454,31 @@ function initializeSynth() {
     const pianoKeys = document.querySelectorAll(".key");
     const volumeSlider = document.getElementById("volumeSlider");
     const showKeys = document.getElementById("showKeys");
-    const oscBtns = document.querySelectorAll(".osc-btn");
-    const waveBtns = document.querySelectorAll(".wave-btn");
+    
+    // Controles de forma de onda
+    const waveBtnsOsc1 = document.querySelectorAll(".wave-btn.osc1");
+    const waveBtnsOsc2 = document.querySelectorAll(".wave-btn.osc2");
+    
+    // Controles de armónicos
     const harmonic1_1 = document.getElementById("harmonic1-1");
     const harmonic1_3 = document.getElementById("harmonic1-3");
     const harmonic1_5 = document.getElementById("harmonic1-5");
     const harmonic1_7 = document.getElementById("harmonic1-7");
+    const harmonic2_1 = document.getElementById("harmonic2-1");
+    const harmonic2_3 = document.getElementById("harmonic2-3");
+    const harmonic2_5 = document.getElementById("harmonic2-5");
+    const harmonic2_7 = document.getElementById("harmonic2-7");
+    
+    // Valores de armónicos
     const harmonic1_1_value = document.getElementById("harmonic1-1-value");
     const harmonic1_3_value = document.getElementById("harmonic1-3-value");
     const harmonic1_5_value = document.getElementById("harmonic1-5-value");
     const harmonic1_7_value = document.getElementById("harmonic1-7-value");
+    const harmonic2_1_value = document.getElementById("harmonic2-1-value");
+    const harmonic2_3_value = document.getElementById("harmonic2-3-value");
+    const harmonic2_5_value = document.getElementById("harmonic2-5-value");
+    const harmonic2_7_value = document.getElementById("harmonic2-7-value");
+    
     const level1 = document.getElementById("level1");
     const level2 = document.getElementById("level2");
     const octave1 = document.getElementById("octave1");
@@ -500,17 +594,20 @@ function initializeSynth() {
             x += barWidth + 1;
         }
         
-        const cutoffRatio = filter.frequency.value / 12000;
-        const cutoffX = cutoffRatio * spectrumCanvas.width;
-        
-        spectrumCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        spectrumCtx.lineWidth = 1;
-        spectrumCtx.setLineDash([5, 3]);
-        spectrumCtx.beginPath();
-        spectrumCtx.moveTo(cutoffX, 0);
-        spectrumCtx.lineTo(cutoffX, spectrumCanvas.height);
-        spectrumCtx.stroke();
-        spectrumCtx.setLineDash([]);
+        // Mostrar línea del cutoff del filtro
+        if (filter) {
+            const cutoffRatio = filter.frequency.value / 12000;
+            const cutoffX = cutoffRatio * spectrumCanvas.width;
+            
+            spectrumCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            spectrumCtx.lineWidth = 1;
+            spectrumCtx.setLineDash([5, 3]);
+            spectrumCtx.beginPath();
+            spectrumCtx.moveTo(cutoffX, 0);
+            spectrumCtx.lineTo(cutoffX, spectrumCanvas.height);
+            spectrumCtx.stroke();
+            spectrumCtx.setLineDash([]);
+        }
     }
 
     function animateVisualizations() {
@@ -548,37 +645,119 @@ function initializeSynth() {
                 if (lfoEnabled) {
                     setupPhaser();
                 } else {
-                    if (phaserNode) {
-                        phaserNode.disconnect();
-                        phaserNode = null;
-                    }
+                    disconnectPhaser();
                 }
-                lfoGain.gain.value = lfoEnabled ? parseFloat(lfoDepth.value) : 0;
                 break;
         }
     }
 
     function setupPhaser() {
-        if (phaserNode) {
-            phaserNode.disconnect();
+        // Limpiar phaser anterior si existe
+        disconnectPhaser();
+        
+        // Crear nodos del phaser
+        phaserNode = {
+            input: audioCtx.createGain(),
+            output: audioCtx.createGain(),
+            dry: audioCtx.createGain(),
+            wet: audioCtx.createGain(),
+            feedback: audioCtx.createGain(),
+            filters: []
+        };
+        
+        // Configurar ganancias
+        phaserNode.dry.gain.value = 0.5;  // 50% señal seca
+        phaserNode.wet.gain.value = 0.5;  // 50% señal procesada
+        phaserNode.feedback.gain.value = 0.7;  // Cantidad de feedback
+        
+        // Crear 4 filtros allpass en serie (típico en phasers)
+        const stages = 4;
+        let lastFilter = phaserNode.input;
+        
+        for (let i = 0; i < stages; i++) {
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = "allpass";
+            filter.frequency.value = 350 + (i * 100);  // Frecuencias escalonadas
+            filter.Q.value = 1.0;
+            
+            // Conectar el LFO a la frecuencia del filtro
+            lfoGain.connect(filter.frequency);
+            
+            lastFilter.connect(filter);
+            lastFilter = filter;
+            phaserNode.filters.push(filter);
         }
         
-        phaserNode = audioCtx.createBiquadFilter();
-        const phaserFeedback = audioCtx.createGain();
-        const phaserMix = audioCtx.createGain();
+        // Conectar la última etapa al output wet
+        lastFilter.connect(phaserNode.wet);
         
-        phaserNode.type = "allpass";
-        phaserNode.frequency.value = 350;
-        phaserNode.Q.value = 10;
+        // Crear feedback loop
+        lastFilter.connect(phaserNode.feedback);
+        phaserNode.feedback.connect(phaserNode.input);
         
-        phaserFeedback.gain.value = 0.5;
-        phaserMix.gain.value = 0.5;
+        // Crear dry path (bypass)
+        phaserNode.input.connect(phaserNode.dry);
         
-        lfoGain.connect(phaserNode.frequency);
+        // Mezclar dry y wet
+        phaserNode.dry.connect(phaserNode.output);
+        phaserNode.wet.connect(phaserNode.output);
         
+        // CORRECCIÓN: Conectar el phaser EN SERIE con el filtro
+        // 1. Desconectar masterGain del filtro
         masterGain.disconnect();
-        masterGain.connect(phaserNode);
-        phaserNode.connect(analyser);
+        
+        // 2. Conectar masterGain al input del phaser
+        masterGain.connect(phaserNode.input);
+        
+        // 3. Conectar la salida del phaser al filtro (el filtro sigue conectado al analyser)
+        phaserNode.output.connect(filter);
+        
+        // Configurar el LFO para el phaser
+        lfoOscillator.frequency.value = parseFloat(lfoRate.value);
+        lfoGain.gain.value = parseFloat(lfoDepth.value) * 1000;  // Rango de modulación
+        
+        // Establecer rango de frecuencia base para los filtros
+        const baseFreq = 800;
+        phaserNode.filters.forEach((filter, index) => {
+            filter.frequency.value = baseFreq + (index * 200);
+        });
+    }
+
+    function disconnectPhaser() {
+        if (phaserNode) {
+            // Desconectar todos los nodos
+            if (phaserNode.input) phaserNode.input.disconnect();
+            if (phaserNode.output) phaserNode.output.disconnect();
+            if (phaserNode.dry) phaserNode.dry.disconnect();
+            if (phaserNode.wet) phaserNode.wet.disconnect();
+            if (phaserNode.feedback) phaserNode.feedback.disconnect();
+            
+            // Desconectar filtros del phaser y desconectar LFO de ellos
+            if (phaserNode.filters) {
+                phaserNode.filters.forEach(filter => {
+                    if (filter) {
+                        // Desconectar el LFO de los filtros del phaser
+                        lfoGain.disconnect(filter.frequency);
+                        filter.disconnect();
+                    }
+                });
+            }
+            
+            phaserNode = null;
+        }
+        
+        // CORRECCIÓN: Reconectar audio chain normal manteniendo el filtro
+        if (masterGain && filter && analyser) {
+            // Desconectar masterGain de donde esté conectado
+            masterGain.disconnect();
+            
+            // Reconectar masterGain directamente al filtro
+            masterGain.connect(filter);
+            
+            // Asegurarse de que el filtro esté conectado al analyser
+            // (esto ya debería estar así desde la inicialización)
+            filter.connect(analyser);
+        }
     }
 
     /* =========================
@@ -829,61 +1008,78 @@ function initializeSynth() {
         });
     };
 
-    // OSC SELECT
-    oscBtns.forEach(btn => {
+    // CONTROLES DE FORMA DE ONDA
+    waveBtnsOsc1.forEach(btn => {
         btn.onclick = () => {
-            oscBtns.forEach(b => b.classList.remove("active"));
+            waveBtnsOsc1.forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
-            currentOsc = btn.dataset.osc;
-            updateHarmonicsUI();
-            updateUI();
+            oscConfig[1].wave = btn.dataset.wave;
         };
     });
 
-    // WAVE SELECT
-    waveBtns.forEach(btn => {
+    waveBtnsOsc2.forEach(btn => {
         btn.onclick = () => {
-            waveBtns.forEach(b => b.classList.remove("active"));
+            waveBtnsOsc2.forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
-            oscConfig[currentOsc].wave = btn.dataset.wave;
+            oscConfig[2].wave = btn.dataset.wave;
         };
     });
 
     // CONTROLES DE ARMÓNICOS
-    function updateHarmonicsValues() {
-        harmonic1_1_value.textContent = parseFloat(harmonic1_1.value).toFixed(2);
-        harmonic1_3_value.textContent = parseFloat(harmonic1_3.value).toFixed(2);
-        harmonic1_5_value.textContent = parseFloat(harmonic1_5.value).toFixed(2);
-        harmonic1_7_value.textContent = parseFloat(harmonic1_7.value).toFixed(2);
+    function updateHarmonicsValues(osc) {
+        if (osc === 1) {
+            harmonic1_1_value.textContent = parseFloat(harmonic1_1.value).toFixed(2);
+            harmonic1_3_value.textContent = parseFloat(harmonic1_3.value).toFixed(2);
+            harmonic1_5_value.textContent = parseFloat(harmonic1_5.value).toFixed(2);
+            harmonic1_7_value.textContent = parseFloat(harmonic1_7.value).toFixed(2);
+        } else {
+            harmonic2_1_value.textContent = parseFloat(harmonic2_1.value).toFixed(2);
+            harmonic2_3_value.textContent = parseFloat(harmonic2_3.value).toFixed(2);
+            harmonic2_5_value.textContent = parseFloat(harmonic2_5.value).toFixed(2);
+            harmonic2_7_value.textContent = parseFloat(harmonic2_7.value).toFixed(2);
+        }
     }
 
-    function updateHarmonicsUI() {
-        const harmonics = oscConfig[currentOsc].harmonics;
-        harmonic1_1.value = harmonics.h1;
-        harmonic1_3.value = harmonics.h3;
-        harmonic1_5.value = harmonics.h5;
-        harmonic1_7.value = harmonics.h7;
-        updateHarmonicsValues();
-    }
-
+    // OSC1 Harmonics
     harmonic1_1.oninput = () => {
-        oscConfig[currentOsc].harmonics.h1 = parseFloat(harmonic1_1.value);
-        updateHarmonicsValues();
+        oscConfig[1].harmonics.h1 = parseFloat(harmonic1_1.value);
+        updateHarmonicsValues(1);
     };
 
     harmonic1_3.oninput = () => {
-        oscConfig[currentOsc].harmonics.h3 = parseFloat(harmonic1_3.value);
-        updateHarmonicsValues();
+        oscConfig[1].harmonics.h3 = parseFloat(harmonic1_3.value);
+        updateHarmonicsValues(1);
     };
 
     harmonic1_5.oninput = () => {
-        oscConfig[currentOsc].harmonics.h5 = parseFloat(harmonic1_5.value);
-        updateHarmonicsValues();
+        oscConfig[1].harmonics.h5 = parseFloat(harmonic1_5.value);
+        updateHarmonicsValues(1);
     };
 
     harmonic1_7.oninput = () => {
-        oscConfig[currentOsc].harmonics.h7 = parseFloat(harmonic1_7.value);
-        updateHarmonicsValues();
+        oscConfig[1].harmonics.h7 = parseFloat(harmonic1_7.value);
+        updateHarmonicsValues(1);
+    };
+
+    // OSC2 Harmonics
+    harmonic2_1.oninput = () => {
+        oscConfig[2].harmonics.h1 = parseFloat(harmonic2_1.value);
+        updateHarmonicsValues(2);
+    };
+
+    harmonic2_3.oninput = () => {
+        oscConfig[2].harmonics.h3 = parseFloat(harmonic2_3.value);
+        updateHarmonicsValues(2);
+    };
+
+    harmonic2_5.oninput = () => {
+        oscConfig[2].harmonics.h5 = parseFloat(harmonic2_5.value);
+        updateHarmonicsValues(2);
+    };
+
+    harmonic2_7.oninput = () => {
+        oscConfig[2].harmonics.h7 = parseFloat(harmonic2_7.value);
+        updateHarmonicsValues(2);
     };
 
     // LEVELS
@@ -900,7 +1096,7 @@ function initializeSynth() {
         oct2Label.textContent = `Octava OSC2 (Do${octave2.value})`;
     };
 
-    // FILTER CONTROLS
+    // FILTER CONTROLS - Ahora funcionan incluso con phaser activo
     filterBtns.forEach(btn => {
         btn.onclick = () => {
             filterBtns.forEach(b => b.classList.remove("active"));
@@ -927,6 +1123,13 @@ function initializeSynth() {
             lfoTypeBtns.forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             currentLFOMode = btn.dataset.type;
+            
+            // Si estamos cambiando desde phaser a otro modo, desconectar phaser
+            if (currentLFOMode !== "phaser" && lfoEnabled) {
+                disconnectPhaser();
+            }
+            
+            // Configurar el nuevo modo LFO
             setupLFOMode();
         };
     });
@@ -934,14 +1137,19 @@ function initializeSynth() {
     lfoToggle.onclick = () => {
         lfoEnabled = !lfoEnabled;
         lfoToggle.textContent = lfoEnabled ? "LFO ON" : "LFO OFF";
-        setupLFOMode();
         
-        if (!lfoEnabled && currentLFOMode === "phaser" && phaserNode) {
-            masterGain.disconnect();
-            masterGain.connect(filter);
-            filter.connect(analyser);
-            phaserNode.disconnect();
-            phaserNode = null;
+        if (currentLFOMode === "phaser") {
+            if (lfoEnabled) {
+                setupPhaser();
+            } else {
+                disconnectPhaser();
+            }
+        } else {
+            // Para tremolo y vibrato, asegurarse de desconectar el phaser si existe
+            if (phaserNode) {
+                disconnectPhaser();
+            }
+            setupLFOMode();
         }
     };
 
@@ -949,23 +1157,28 @@ function initializeSynth() {
         const value = parseFloat(lfoRate.value);
         lfoOscillator.frequency.value = value;
         updateLFORateValue();
+        
+        // Si está activo el phaser, actualizar frecuencia del LFO
+        if (lfoEnabled && currentLFOMode === "phaser") {
+            lfoOscillator.frequency.value = value;
+        }
     };
 
     lfoDepth.oninput = () => {
         const value = parseFloat(lfoDepth.value);
         updateLFODepthValue();
-        setupLFOMode();
+        
+        // Si está activo el phaser, actualizar profundidad
+        if (lfoEnabled && currentLFOMode === "phaser") {
+            lfoGain.gain.value = value * 1000;  // Escalar para rango útil
+        } else {
+            setupLFOMode();
+        }
     };
 
     /* =========================
-       UI SYNC
+       INICIALIZACIÓN DE UI
     ========================= */
-    function updateUI() {
-        waveBtns.forEach(b =>
-            b.classList.toggle("active", b.dataset.wave === oscConfig[currentOsc].wave)
-        );
-    }
-
     // Inicializar controles
     level1.value = oscConfig[1].level;
     level2.value = oscConfig[2].level;
@@ -979,13 +1192,24 @@ function initializeSynth() {
     lfoDepth.value = 0.5;
     updateLFORateValue();
     updateLFODepthValue();
-    updateHarmonicsUI();
-
-    // Activar botones iniciales
-    document.querySelector('.wave-btn[data-wave="sine"]').classList.add('active');
-    document.querySelector('.wave-btn[data-wave="triangle"]').classList.add('active');
+    
+    // Inicializar armónicos
+    harmonic1_1.value = oscConfig[1].harmonics.h1;
+    harmonic1_3.value = oscConfig[1].harmonics.h3;
+    harmonic1_5.value = oscConfig[1].harmonics.h5;
+    harmonic1_7.value = oscConfig[1].harmonics.h7;
+    harmonic2_1.value = oscConfig[2].harmonics.h1;
+    harmonic2_3.value = oscConfig[2].harmonics.h3;
+    harmonic2_5.value = oscConfig[2].harmonics.h5;
+    harmonic2_7.value = oscConfig[2].harmonics.h7;
+    
+    updateHarmonicsValues(1);
+    updateHarmonicsValues(2);
+    
+    // Activar botones iniciales de forma de onda
+    document.querySelector('.wave-btn.osc1[data-wave="sine"]').classList.add('active');
+    document.querySelector('.wave-btn.osc2[data-wave="triangle"]').classList.add('active');
 }
 
 // Marcar que el sintetizador no está inicializado todavía
 window.synthInitialized = false;
-

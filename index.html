@@ -108,48 +108,102 @@
                     </div>
                 </div>
 
-                <!-- OSC SELECT -->
-                <div class="block">
-                    <div class="title">OSC SELECT</div>
-                    <button class="osc-btn active" data-osc="1">Config OSC1</button>
-                    <button class="osc-btn" data-osc="2">Config OSC2</button>
-                </div>
-
-                <!-- WAVE -->
-                <div class="block">
-                    <div class="title">WAVEFORM</div>
-                    <button class="wave-btn" data-wave="sine">Sine</button>
-                    <button class="wave-btn" data-wave="square">Square</button>
-                    <button class="wave-btn" data-wave="sawtooth">Saw</button>
-                    <button class="wave-btn" data-wave="triangle">Triangle</button>
-                </div>
-
-                <!-- ARMÓNICOS IMPARES -->
-                <div class="block">
-                    <div class="title">ARMÓNICOS IMPARES</div>
-                    <div class="harmonics-controls">
-                        <div class="dual">
-                            <div class="control">
-                                <span>1º (Fundamental)</span>
-                                <input id="harmonic1-1" type="range" min="0" max="1" step="0.01" value="1.0">
-                                <span id="harmonic1-1-value" class="value-display">1.0</span>
-                            </div>
-                            <div class="control">
-                                <span>3º</span>
-                                <input id="harmonic1-3" type="range" min="0" max="1" step="0.01" value="0.0">
-                                <span id="harmonic1-3-value" class="value-display">0.0</span>
+                <!-- OSCILADORES SIMULTÁNEOS -->
+                <div class="block dual">
+                    <!-- OSCILADOR 1 -->
+                    <div class="osc-config">
+                        <div class="osc-header">
+                            <div class="title">OSCILADOR 1</div>
+                        </div>
+                        
+                        <!-- FORMA DE ONDA OSC1 -->
+                        <div class="waveform-section">
+                            <div class="title">FORMA DE ONDA OSC1</div>
+                            <div class="wave-buttons">
+                                <button class="wave-btn osc1" data-wave="sine">Sine</button>
+                                <button class="wave-btn osc1" data-wave="square">Square</button>
+                                <button class="wave-btn osc1" data-wave="sawtooth">Saw</button>
+                                <button class="wave-btn osc1" data-wave="triangle">Triangle</button>
                             </div>
                         </div>
-                        <div class="dual">
-                            <div class="control">
-                                <span>5º</span>
-                                <input id="harmonic1-5" type="range" min="0" max="1" step="0.01" value="0.0">
-                                <span id="harmonic1-5-value" class="value-display">0.0</span>
+                        
+                        <!-- ARMÓNICOS IMPARES OSC1 -->
+                        <div class="harmonics-section">
+                            <div class="title">ARMÓNICOS OSC1</div>
+                            <div class="harmonics-controls">
+                                <div class="dual">
+                                    <div class="control">
+                                        <span>1º (Fundamental)</span>
+                                        <input id="harmonic1-1" type="range" min="0" max="1" step="0.01" value="1.0">
+                                        <span id="harmonic1-1-value" class="value-display">1.0</span>
+                                    </div>
+                                    <div class="control">
+                                        <span>3º</span>
+                                        <input id="harmonic1-3" type="range" min="0" max="1" step="0.01" value="0.0">
+                                        <span id="harmonic1-3-value" class="value-display">0.0</span>
+                                    </div>
+                                </div>
+                                <div class="dual">
+                                    <div class="control">
+                                        <span>5º</span>
+                                        <input id="harmonic1-5" type="range" min="0" max="1" step="0.01" value="0.0">
+                                        <span id="harmonic1-5-value" class="value-display">0.0</span>
+                                    </div>
+                                    <div class="control">
+                                        <span>7º</span>
+                                        <input id="harmonic1-7" type="range" min="0" max="1" step="0.01" value="0.0">
+                                        <span id="harmonic1-7-value" class="value-display">0.0</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="control">
-                                <span>7º</span>
-                                <input id="harmonic1-7" type="range" min="0" max="1" step="0.01" value="0.0">
-                                <span id="harmonic1-7-value" class="value-display">0.0</span>
+                        </div>
+                    </div>
+
+                    <!-- OSCILADOR 2 -->
+                    <div class="osc-config">
+                        <div class="osc-header">
+                            <div class="title">OSCILADOR 2</div>
+                        </div>
+                        
+                        <!-- FORMA DE ONDA OSC2 -->
+                        <div class="waveform-section">
+                            <div class="title">FORMA DE ONDA OSC2</div>
+                            <div class="wave-buttons">
+                                <button class="wave-btn osc2" data-wave="sine">Sine</button>
+                                <button class="wave-btn osc2" data-wave="square">Square</button>
+                                <button class="wave-btn osc2" data-wave="sawtooth">Saw</button>
+                                <button class="wave-btn osc2" data-wave="triangle">Triangle</button>
+                            </div>
+                        </div>
+                        
+                        <!-- ARMÓNICOS IMPARES OSC2 -->
+                        <div class="harmonics-section">
+                            <div class="title">ARMÓNICOS OSC2</div>
+                            <div class="harmonics-controls">
+                                <div class="dual">
+                                    <div class="control">
+                                        <span>1º (Fundamental)</span>
+                                        <input id="harmonic2-1" type="range" min="0" max="1" step="0.01" value="1.0">
+                                        <span id="harmonic2-1-value" class="value-display">1.0</span>
+                                    </div>
+                                    <div class="control">
+                                        <span>3º</span>
+                                        <input id="harmonic2-3" type="range" min="0" max="1" step="0.01" value="0.0">
+                                        <span id="harmonic2-3-value" class="value-display">0.0</span>
+                                    </div>
+                                </div>
+                                <div class="dual">
+                                    <div class="control">
+                                        <span>5º</span>
+                                        <input id="harmonic2-5" type="range" min="0" max="1" step="0.01" value="0.0">
+                                        <span id="harmonic2-5-value" class="value-display">0.0</span>
+                                    </div>
+                                    <div class="control">
+                                        <span>7º</span>
+                                        <input id="harmonic2-7" type="range" min="0" max="1" step="0.01" value="0.0">
+                                        <span id="harmonic2-7-value" class="value-display">0.0</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -159,11 +213,11 @@
                 <div class="block dual">
                     <div class="control">
                         <span>Nivel OSC1</span>
-                        <input id="level1" type="range" min="0" max="1" step="any">
+                        <input id="level1" type="range" min="0" max="1" step="any" value="0.7">
                     </div>
                     <div class="control">
                         <span>Nivel OSC2</span>
-                        <input id="level2" type="range" min="0" max="1" step="any">
+                        <input id="level2" type="range" min="0" max="1" step="any" value="0.7">
                     </div>
                 </div>
 
@@ -171,11 +225,11 @@
                 <div class="block dual">
                     <div class="control">
                         <span id="oct1Label">Octava OSC1 (Do1)</span>
-                        <input id="octave1" type="range" min="1" max="7">
+                        <input id="octave1" type="range" min="1" max="7" value="1">
                     </div>
                     <div class="control">
                         <span id="oct2Label">Octava OSC2 (Do1)</span>
-                        <input id="octave2" type="range" min="1" max="7">
+                        <input id="octave2" type="range" min="1" max="7" value="1">
                     </div>
                 </div>
 
@@ -267,4 +321,3 @@
 
 </body>
 </html>
-

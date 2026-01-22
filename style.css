@@ -289,11 +289,43 @@ h1 span{
     gap:12px;
 }
 
+/* Estilos para configuración de osciladores simultáneos */
+.osc-config {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.osc-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.waveform-section, .harmonics-section {
+    width: 100%;
+}
+
+.wave-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.wave-buttons button {
+    flex: 1;
+    min-width: 70px;
+    padding: 8px 5px;
+    font-size: 0.8rem;
+}
+
 .title{
     width:100%;
     color:var(--green);
     letter-spacing:3px;
     font-size:.75rem;
+    margin-bottom: 5px;
 }
 
 .dual{
